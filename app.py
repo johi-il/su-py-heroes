@@ -1,5 +1,5 @@
 # app.py
-from flask import Flask,jsonify,make_response
+from flask import Flask,jsonify,make_response,request
 from flask_sqlalchemy import SQLAlchemy
 
 from sqlalchemy_serializer import SerializerMixin
@@ -68,7 +68,7 @@ class Power(db.Model, SerializerMixin):
 
     heropower = db.relationship('HeroPower', back_populates='power')
 
-    serialize_rules = ('-heropower.power',)#this ensures we don't get recursions so it stops at power
+    serialize_rules = ('-heropower',)#this ensures we don't get recursions so we don't get infinite loops when serializing
 
     @validates('description')
     def validate_description(self, key, description):
@@ -126,9 +126,9 @@ def powers():
     powers=[]
     for power in Power.query.all():
         power_dict={
+            "description": power.description,
             "id": power.id,
-            "name": power.name,
-            "description": power.description
+            "name": power.name
         }
         powers.append(power_dict)
 
@@ -137,6 +137,31 @@ def powers():
         200
     )
     return response
+
+@app.route('/powers/<int:id>', methods=['PATCH'])
+def power_by_id(id):
+        
+        power = Power.query.get(id)
+        if not power:
+            response = make_response(
+                jsonify({"error": "Power not found"}),
+                404
+            )
+            if request.method == 'PATCH':
+                for attr in request.form:
+                    setattr(power, attr, request.form.get(attr))
+
+                db.session.add(power)
+                db.session.commit()
+
+                power_dict = power.to_dict()
+
+                response = make_response(
+                    power_dict,
+                    200
+                )
+
+                return response
 
 @app.route('/powers/<int:id>')
 def power_id(id):
@@ -155,6 +180,50 @@ def power_id(id):
     )
     return response
 
+@app.route('/hero_powers', methods=['POST'])
+def create_hero_power():
+    data = request.get_json()
+    
+    # Extract data from request
+    strength = data.get('strength')
+    power_id = data.get('power_id')
+    hero_id = data.get('hero_id')
+    
+    errors = []
+    
+    # Validate hero exists
+    hero = Hero.query.get(hero_id)
+    if not hero:
+        errors.append("Hero not found")
+    
+    # Validate power exists
+    power = Power.query.get(power_id)
+    if not power:
+        errors.append("Power not found")
+    
+
+    if errors:
+        response = make_response(
+            jsonify({"errors": errors}),
+            400
+        )
+        return response
+    
+    # Create new HeroPower
+    hero_power = HeroPower(
+        strength=strength,
+        hero_id=hero_id,
+        power_id=power_id
+    )
+    
+    db.session.add(hero_power)
+    db.session.commit()
+    
+    response = make_response(
+        jsonify(hero_power.to_dict()),
+        201
+    )
+    return response
 
 if __name__ == '__main__':
     app.run(debug=True, port=5555)
