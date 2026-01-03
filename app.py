@@ -1,5 +1,5 @@
 # app.py
-from flask import Flask
+from flask import Flask,jsonify,make_response
 from flask_sqlalchemy import SQLAlchemy
 
 from sqlalchemy_serializer import SerializerMixin
@@ -12,9 +12,9 @@ from flask_migrate import Migrate
 app = Flask(__name__)
 
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///heroes.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///powers.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
+app.json.compact = False
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -64,7 +64,7 @@ class Power(db.Model, SerializerMixin):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(), nullable=False)
-    description = db.Column(db.String(20), nullable=False)
+    description = db.Column(db.String(), nullable=False)
 
     heropower = db.relationship('HeroPower', back_populates='power')
 
@@ -80,3 +80,81 @@ class Power(db.Model, SerializerMixin):
         return f'<Power {self.name} for Hero ID {self.hero_id}>'
 
 
+@app.route('/')
+def index():
+    return "Welcome to the Superhero API!"
+
+@app.route('/heroes')
+def heroes():
+    
+    heroes=[]
+    for hero in Hero.query.all():
+        hero_dict={
+            "id": hero.id,
+            "name": hero.name,
+            "super_name": hero.super_name
+        }
+        heroes.append(hero_dict)
+
+    response = make_response(
+        jsonify(heroes),
+        200
+    )
+    return response
+        
+
+@app.route('/heroes/<int:id>')
+def hero_id(id):
+    hero = Hero.query.get(id)
+    if not hero:
+        response = make_response(
+            jsonify({"error": "Hero not found"}),
+            404
+        )
+        return response
+
+    hero_info = hero.to_dict()
+    response = make_response(
+        jsonify(hero_info),
+        200
+    )
+    return response
+
+
+@app.route('/powers')
+def powers():
+    powers=[]
+    for power in Power.query.all():
+        power_dict={
+            "id": power.id,
+            "name": power.name,
+            "description": power.description
+        }
+        powers.append(power_dict)
+
+    response = make_response(
+        jsonify(powers),
+        200
+    )
+    return response
+
+@app.route('/powers/<int:id>')
+def power_id(id):
+    power = Power.query.get(id)
+    if not power:
+        response = make_response(
+            jsonify({"error": "Power not found"}),
+            404
+        )
+        return response
+
+    power_info = power.to_dict()
+    response = make_response(
+        jsonify(power_info),
+        200
+    )
+    return response
+
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5555)

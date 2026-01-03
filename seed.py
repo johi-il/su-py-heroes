@@ -2,6 +2,29 @@ from random import choice as rc
 from app import app
 from app import db, Hero, Power, HeroPower
 
+powers_data = [
+    {
+        "description": "gives the wielder super-human strengths",
+        "id": 1,
+        "name": "super strength"
+    },
+    {
+        "description": "gives the wielder the ability to fly through the skies at supersonic speed",
+        "id": 2,
+        "name": "flight"
+    },
+    {
+        "description": "allows the wielder to use her senses at a super-human level",
+        "id": 3,
+        "name": "super human senses"
+    },
+    {
+        "description": "can stretch the human body to extreme lengths",
+        "id": 4,
+        "name": "elasticity"
+    }
+]
+
 if __name__ == '__main__':
     with app.app_context():
         print("Clearing db...")
