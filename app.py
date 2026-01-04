@@ -180,51 +180,31 @@ def power_id(id):
     )
     return response
 
+
 @app.route('/hero_powers', methods=['POST'])
 def create_hero_power():
     data = request.get_json()
     
-    # Extract data from request
-    strength = data.get('strength')
-    power_id = data.get('power_id')
-    hero_id = data.get('hero_id')
+    # Validation
+    hero = Hero.query.get(data.get('hero_id'))
+    power = Power.query.get(data.get('power_id'))
     
-    errors = []
-    
-    # Validate hero exists
-    hero = Hero.query.get(hero_id )
-    if not hero:
-        errors.append("Hero not found")
-    
-    # Validate power exists
-    power = Power.query.get(power_id)
-    if not power:
-        errors.append("Power not found")
-    
+    if not hero or not power:
+        return jsonify({"errors": ["validation errors"]}), 400
 
-    if errors:
-        response = make_response(
-            jsonify({"errors": errors}),
-            400
+    try:
+        new_heropower = HeroPower(
+            strength=data.get('strength'),
+            hero_id=data.get('hero_id'),
+            power_id=data.get('power_id')
         )
-        return response
-    
-    # Create new HeroPower
-    hero_power = HeroPower(
-        strength=strength,
-        hero_id=hero_id,
-        power_id=power_id
-    )
-    
-    db.session.add(hero_power)
-    db.session.commit()
-    db.session.save(hero_power)
-    
-    response = make_response(
-        jsonify(hero_power.to_dict()),
-        201
-    )
-    return response
+        db.session.add(new_heropower)
+        db.session.commit()
+
+        return jsonify(new_heropower.to_dict()), 201
+    except Exception as e:
+        return jsonify({"errors": [str(e)]}), 400
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5555)
