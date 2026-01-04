@@ -140,28 +140,28 @@ def powers():
 
 @app.route('/powers/<int:id>', methods=['PATCH'])
 def power_by_id(id):
+    power = Power.query.get(id)
+    
+    if not power:
+        return jsonify({"errors": ["Power not found"]}), 404
+
+    # Get data for Postman/API tests)
+    data = request.get_json()
+    
+    # 3. Update attributes safely
+    try:
+        for attr, value in data.items():
+            setattr(power, attr, value)
+            
+        db.session.commit()
         
-        power = Power.query.get(id)
-        if not power:
-            response = make_response(
-                jsonify({"error": "Power not found"}),
-                404
-            )
-            if request.method == 'PATCH':
-                for attr in request.form:
-                    setattr(power, attr, request.form.get(attr))
+        # 4. Return successful response
+        return jsonify(power.to_dict()), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"errors": [str(e)]}), 400
 
-                db.session.add(power)
-                db.session.commit()
-
-                power_dict = power.to_dict()
-
-                response = make_response(
-                    power_dict,
-                    200
-                )
-
-                return response
 
 @app.route('/powers/<int:id>')
 def power_id(id):
@@ -192,7 +192,7 @@ def create_hero_power():
     errors = []
     
     # Validate hero exists
-    hero = Hero.query.get(hero_id)
+    hero = Hero.query.get(hero_id )
     if not hero:
         errors.append("Hero not found")
     
@@ -218,6 +218,7 @@ def create_hero_power():
     
     db.session.add(hero_power)
     db.session.commit()
+    db.session.save(hero_power)
     
     response = make_response(
         jsonify(hero_power.to_dict()),
