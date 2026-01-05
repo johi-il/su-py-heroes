@@ -1,2 +1,0 @@
-- [x] Add powers_data list to seed.py
-- [x] Modify the powers list in seed.py to use powers_data for creating Power objects
