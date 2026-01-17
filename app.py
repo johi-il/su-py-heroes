@@ -1,18 +1,31 @@
 # app.py
 from flask import Flask,jsonify,make_response,request
 from flask_sqlalchemy import SQLAlchemy
+from flask_mail import Mail, Message
 
 from sqlalchemy_serializer import SerializerMixin
 from sqlalchemy.orm import validates
 from flask_migrate import Migrate
 
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 
 app = Flask(__name__)
 
+# Flask-Mail Configuration
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+mail = Mail(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///powers.db'
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///heroes.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.json.compact = False
 
@@ -77,7 +90,7 @@ class Power(db.Model, SerializerMixin):
         return description
 
     def __repr__(self):
-        return f'<Power {self.name} for Hero ID {self.hero_id}>'
+        return f'<Power {self.name}>'
 
 
 @app.route('/')
@@ -147,15 +160,12 @@ def power_by_id(id):
 
     # Get data for Postman/API tests)
     data = request.get_json()
-    
-    # 3. Update attributes safely
     try:
         for attr, value in data.items():
             setattr(power, attr, value)
             
         db.session.commit()
         
-        # 4. Return successful response
         return jsonify(power.to_dict()), 200
         
     except Exception as e:
@@ -204,6 +214,39 @@ def create_hero_power():
         return jsonify(new_heropower.to_dict()), 201
     except Exception as e:
         return jsonify({"errors": [str(e)]}), 400
+
+
+def send_email(to, subject, body):
+    try:
+        msg = Message(
+            subject=subject,
+            recipients=[to],
+            body=body
+        )
+        mail.send(msg)
+        return True
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return False
+
+
+@app.route('/send-email', methods=['POST'])
+def send_test_email():
+    data = request.get_json()
+    
+    recipient = data.get('email')
+    subject = data.get('subject', ' Email from Superhero API')
+    body = data.get('body', 'This is a test email sent from your Flask Superhero API!')
+    
+    if not recipient:
+        return jsonify({"error": "Email recipient is required"}), 400
+    
+    success = send_email(recipient, subject, body)
+    
+    if success:
+        return jsonify({"message": "Email sent successfully!"}), 200
+    else:
+        return jsonify({"error": "Failed to send email"}), 500
 
 
 if __name__ == '__main__':
