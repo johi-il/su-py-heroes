@@ -16,9 +16,11 @@ This project demonstrates RESTful API design using Flask and SQLAlchemy ORM with
 - **Power Management**: List all powers and retrieve individual power information
 - **Power Updates**: Update power descriptions via PATCH requests
 - **Hero-Power Associations**: Create relationships between heroes and their powers
-- **Data Validation**: Ensures data integrity with proper validation rules
-- **Serialization**: Proper JSON serialization with relationship handling to avoid circular references
-- **Database Migrations**: Alembic-based migrations for schema management
+- **Data Validation**: Ensures data integrity with proper validation rules using SQLAlchemy validators
+- **Serialization**: Proper JSON serialization with SQLAlchemy-Serializer to prevent circular references
+- **Database Migrations**: Alembic-based migrations via Flask-Migrate for schema management
+- **Email Notifications**: Send email notifications using Flask-Mail
+- **Environment Configuration**: Secure configuration using python-dotenv and environment variables
 
 ## Setup Instructions
 
@@ -51,11 +53,12 @@ This project demonstrates RESTful API design using Flask and SQLAlchemy ORM with
    ```
 
    Note: The required packages are:
-
-   - Flask
-   - Flask-SQLAlchemy
-   - Flask-Migrate
-   - SQLAlchemy-Serializer
+   - **Flask**: Web framework
+   - **Flask-SQLAlchemy**: SQLAlchemy integration with Flask
+   - **Flask-Migrate**: Database migrations
+   - **Flask-Mail**: Email support
+   - **python-dotenv**: Environment variable management
+   - **SQLAlchemy-Serializer**: JSON serialization with relationship handling
 
 3. **Initialize the database**
 
@@ -65,13 +68,24 @@ This project demonstrates RESTful API design using Flask and SQLAlchemy ORM with
    flask db upgrade
    ```
 
-4. **Seed the database with sample data**
+4. **Configure environment variables**
+
+   Create a `.env` file in the root directory for Flask-Mail configuration:
+
+   ```bash
+   MAIL_USERNAME=your-email@gmail.com
+   MAIL_PASSWORD=your-app-password
+   ```
+
+   > **Note**: For Gmail, use an [App Password](https://support.google.com/accounts/answer/185833) instead of your regular password.
+
+5. **Seed the database with sample data**
 
    ```bash
    python seed.py
    ```
 
-5. **Run the application**
+6. **Run the application**
 
    ```bash
    python app.py
@@ -111,6 +125,11 @@ curl -X PATCH http://localhost:5555/powers/1 \
 curl -X POST http://localhost:5555/hero_powers \
   -H "Content-Type: application/json" \
   -d '{"strength": "Strong", "power_id": 1, "hero_id": 1}'
+
+# Send an email (POST)
+curl -X POST http://localhost:5555/send-email \
+  -H "Content-Type: application/json" \
+  -d '{"email": "recipient@example.com", "subject": "Test Email", "body": "Hello from Superhero API!"}'
 ```
 
 ## API Endpoints
@@ -124,6 +143,7 @@ curl -X POST http://localhost:5555/hero_powers \
 | GET    | `/powers/<int:id>` | Retrieve a specific power by ID      |
 | PATCH  | `/powers/<int:id>` | Update a power's description         |
 | POST   | `/hero_powers`     | Create a new hero-power relationship |
+| POST   | `/send-email`      | Send an email notification           |
 
 ### Response Format
 
@@ -156,6 +176,32 @@ All endpoints return JSON responses with appropriate HTTP status codes.
 }
 ```
 
+**Email Endpoint Request:**
+
+```json
+{
+  "email": "recipient@example.com",
+  "subject": "Email Subject",
+  "body": "Email content here"
+}
+```
+
+**Email Endpoint Success Response (200):**
+
+```json
+{
+  "message": "Email sent successfully!"
+}
+```
+
+**Email Endpoint Error Response (400/500):**
+
+```json
+{
+  "error": "Email recipient is required"
+}
+```
+
 ## Database Schema
 
 ### Power Description
@@ -173,15 +219,15 @@ All endpoints return JSON responses with appropriate HTTP status codes.
 - When creating hero-power relationships, both hero_id and power_id must exist
 - Returns 400 error if either is missing
 
-
 ## Project Structure
 
 ```
 su-py-heroes/
 ├── app.py                          # Main Flask application
-├─- Pipfile                         # Python dependencies
+├── Pipfile                         # Python dependencies
 ├── Pipfile.lock                    # Locked dependency versions
-├── README.md                     
+├── README.md                       # Project documentation
+├── .env                            # Environment variables (create from example)
 ├── seed.py                         # Database seeding script
 ├── challenge-2-superheroes.postman_collection.json  # API tests
 ├── migrations/                     # Flask-Migrate migrations
@@ -222,6 +268,15 @@ flask db upgrade
 python seed.py
 ```
 
+### Email Configuration Issues
+
+If emails fail to send:
+
+1. Verify your `.env` file has correct `MAIL_USERNAME` and `MAIL_PASSWORD`
+2. For Gmail, ensure you're using an [App Password](https://support.google.com/accounts/answer/185833)
+3. Check that your Gmail account has 2-Step Verification enabled
+4. Ensure less secure app access is enabled (if using regular password instead of App Password)
+
 ## License
 
 This project is provided as-is for educational and development purposes. Feel free to modify and extend it for your own use.
@@ -231,9 +286,10 @@ This project is provided as-is for educational and development purposes. Feel fr
 For questions or issues related to this project, please refer to:
 
 - Flask Documentation: https://flask.palletsprojects.com/
+- Flask-Mail Documentation: https://pythonhosted.org/Flask-Mail/
 - SQLAlchemy Documentation: https://docs.sqlalchemy.org/
 - SQLAlchemy-Serializer: https://pypi.org/project/SQLAlchemy-Serializer/
 
 ---
 
-**Built with Flask and SQLAlchemy**
+**Built with Flask, Flask-SQLAlchemy, Flask-Migrate, Flask-Mail, and SQLAlchemy-Serializer**
